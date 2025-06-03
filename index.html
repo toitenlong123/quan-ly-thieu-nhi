@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quản Lý Thiếu Nhi</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, select { margin: 5px; padding: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    .actions button { margin: 2px; }
+  </style>
+</head>
+<body>
+  <h1>Ứng Dụng Quản Lý Thiếu Nhi</h1>
+
+  <div>
+    <input type="text" id="name" placeholder="Họ và tên" />
+    <input type="date" id="dob" />
+    <select id="gender">
+      <option value="Nam">Nam</option>
+      <option value="Nữ">Nữ</option>
+    </select>
+    <input type="text" id="class" placeholder="Lớp" />
+    <input type="text" id="parent" placeholder="Phụ huynh" />
+    <button onclick="addChild()">Thêm</button>
+  </div>
+
+  <input type="text" id="search" placeholder="Tìm kiếm theo tên" oninput="searchChildren()" />
+
+  <table id="childrenTable">
+    <thead>
+      <tr>
+        <th>Họ tên</th>
+        <th>Ngày sinh</th>
+        <th>Giới tính</th>
+        <th>Lớp</th>
+        <th>Phụ huynh</th>
+        <th>Hành động</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let children = [];
+
+    function renderTable(data = children) {
+      const tbody = document.querySelector('#childrenTable tbody');
+      tbody.innerHTML = '';
+      data.forEach((child, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${child.name}</td>
+          <td>${child.dob}</td>
+          <td>${child.gender}</td>
+          <td>${child.class}</td>
+          <td>${child.parent}</td>
+          <td class="actions">
+            <button onclick="editChild(${index})">Sửa</button>
+            <button onclick="deleteChild(${index})">Xoá</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function addChild() {
+      const name = document.getElementById('name').value;
+      const dob = document.getElementById('dob').value;
+      const gender = document.getElementById('gender').value;
+      const childClass = document.getElementById('class').value;
+      const parent = document.getElementById('parent').value;
+
+      if (!name || !dob) return alert("Vui lòng điền đầy đủ thông tin!");
+
+      children.push({ name, dob, gender, class: childClass, parent });
+      renderTable();
+      clearForm();
+    }
+
+    function deleteChild(index) {
+      if (confirm("Bạn có chắc muốn xoá?")) {
+        children.splice(index, 1);
+        renderTable();
+      }
+    }
+
+    function editChild(index) {
+      const child = children[index];
+      document.getElementById('name').value = child.name;
+      document.getElementById('dob').value = child.dob;
+      document.getElementById('gender').value = child.gender;
+      document.getElementById('class').value = child.class;
+      document.getElementById('parent').value = child.parent;
+
+      children.splice(index, 1);
+      renderTable();
+    }
+
+    function clearForm() {
+      document.getElementById('name').value = '';
+      document.getElementById('dob').value = '';
+      document.getElementById('gender').value = 'Nam';
+      document.getElementById('class').value = '';
+      document.getElementById('parent').value = '';
+    }
+
+    function searchChildren() {
+      const keyword = document.getElementById('search').value.toLowerCase();
+      const filtered = children.filter(child => child.name.toLowerCase().includes(keyword));
+      renderTable(filtered);
+    }
+  </script>
+</body>
+</html>

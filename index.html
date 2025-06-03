@@ -1,141 +1,90 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quản lý Thiếu nhi - Trường học</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-  <style>
-    body {
-      background: #e3f2fd;
-      min-height: 100vh;
-      padding-top: 60px;
+// src/firebase/firebaseConfig.js
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
+
+export { app, db, auth, storage };
+
+// src/components/Login.jsx
+import { useState } from "react";
+import { auth } from "../firebase/firebaseConfig";
+import { signInWithEmailAndPassword } from "firebase/auth";
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("Đăng nhập thành công");
+    } catch (error) {
+      alert("Lỗi đăng nhập: " + error.message);
     }
-    .navbar {
-      background-color: #1976d2;
-    }
-    .navbar-brand, .navbar-nav .nav-link {
-      color: #fff !important;
-    }
-    .avatar {
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .table thead {
-      background-color: #1565c0;
-      color: white;
-    }
-    .btn-sm {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.8rem;
-    }
-  </style>
-</head>
-<body>
-  <nav class="navbar fixed-top navbar-expand-lg">
-    <div class="container">
-      <a class="navbar-brand" href="#">🌟 Quản lý Thiếu nhi Trường học</a>
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <form onSubmit={handleLogin} className="bg-white p-6 rounded shadow-md w-80">
+        <h2 className="text-xl font-bold mb-4">Đăng nhập</h2>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-2 border mb-3 rounded"
+          required
+        />
+        <input
+          type="password"
+          placeholder="Mật khẩu"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full p-2 border mb-3 rounded"
+          required
+        />
+        <button
+          type="submit"
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+        >
+          Đăng nhập
+        </button>
+      </form>
     </div>
-  </nav>
+  );
+}
 
-  <div class="container">
-    <div class="card p-3 mb-4 shadow-sm">
-      <h4>Thêm Thiếu nhi mới</h4>
-      <div class="row g-3 align-items-center">
-        <div class="col-md-3">
-          <input type="text" id="ten" class="form-control" placeholder="Họ và tên" />
-        </div>
-        <div class="col-md-2">
-          <input type="date" id="ngaysinh" class="form-control" />
-        </div>
-        <div class="col-md-2">
-          <input type="text" id="lop" class="form-control" placeholder="Lớp" />
-        </div>
-        <div class="col-md-3">
-          <input type="text" id="phuhuynh" class="form-control" placeholder="Tên phụ huynh" />
-        </div>
-        <div class="col-md-2">
-          <input type="file" id="anh" class="form-control" accept="image/*" />
-        </div>
-      </div>
-      <div class="mt-3 text-end">
-        <button class="btn btn-primary" onclick="themThieuNhi()"><i class="fas fa-plus"></i> Thêm</button>
-      </div>
+// src/App.jsx
+import Login from "./components/Login";
+
+export default function App() {
+  return (
+    <div>
+      <Login />
     </div>
+  );
+}
 
-    <div class="card p-3 shadow-sm">
-      <h4>Danh sách Thiếu nhi</h4>
-      <div class="table-responsive">
-        <table class="table table-bordered align-middle text-center">
-          <thead>
-            <tr>
-              <th>Ảnh</th>
-              <th>Họ tên</th>
-              <th>Ngày sinh</th>
-              <th>Lớp</th>
-              <th>Phụ huynh</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody id="danhsach"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // Hàm thêm thiếu nhi vào danh sách
-    function themThieuNhi() {
-      const ten = document.getElementById('ten').value.trim();
-      const ngaysinh = document.getElementById('ngaysinh').value;
-      const lop = document.getElementById('lop').value.trim();
-      const phuhuynh = document.getElementById('phuhuynh').value.trim();
-      const anhInput = document.getElementById('anh');
-
-      if (!ten || !ngaysinh || !lop || !phuhuynh) {
-        alert('Vui lòng nhập đầy đủ thông tin!');
-        return;
-      }
-      if (!anhInput.files[0]) {
-        alert('Vui lòng chọn ảnh đại diện!');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const anhSrc = e.target.result;
-        const tbody = document.getElementById('danhsach');
-        const tr = document.createElement('tr');
-
-        tr.innerHTML = `
-          <td><img src="${anhSrc}" alt="Avatar" class="avatar" /></td>
-          <td>${ten}</td>
-          <td>${ngaysinh}</td>
-          <td>${lop}</td>
-          <td>${phuhuynh}</td>
-          <td>
-            <button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">
-              <i class="fas fa-trash"></i>
-            </button>
-          </td>
-        `;
-
-        tbody.appendChild(tr);
-
-        // Xóa form sau khi thêm
-        document.getElementById('ten').value = '';
-        document.getElementById('ngaysinh').value = '';
-        document.getElementById('lop').value = '';
-        document.getElementById('phuhuynh').value = '';
-        anhInput.value = null;
-      };
-      reader.readAsDataURL(anhInput.files[0]);
-    }
-  </script>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+// .env (gốc dự án)
+VITE_FIREBASE_API_KEY=YOUR_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN=YOUR_PROJECT_ID.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=YOUR_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET=YOUR_PROJECT_ID.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_SENDER_ID
+VITE_FIREBASE_APP_ID=YOUR_APP_ID

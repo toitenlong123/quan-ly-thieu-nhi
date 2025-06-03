@@ -1,207 +1,112 @@
-import React, { useState, useEffect } from "react";
-import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  DocumentData,
-} from "firebase/firestore";
-import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-
-// TODO: Thay thông tin Firebase của bạn vào đây
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
-
-// Khởi tạo Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-interface Child {
-  id: string;
-  name: string;
-  dob: string;
-  avatarUrl: string;
-}
-
-export default function App() {
-  const [children, setChildren] = useState<Child[]>([]);
-  const [name, setName] = useState("");
-  const [dob, setDob] = useState("");
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Load danh sách thiếu nhi
-  const fetchChildren = async () => {
-    const snapshot = await getDocs(collection(db, "children"));
-    const data = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Omit<Child, "id">),
-    }));
-    setChildren(data);
-  };
-
-  useEffect(() => {
-    fetchChildren();
-  }, []);
-
-  // Xử lý submit form
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !dob.trim()) {
-      alert("Vui lòng nhập đầy đủ tên và ngày sinh");
-      return;
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Thiếu nhi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: #f0f8ff;
+      padding: 20px;
     }
-
-    setLoading(true);
-    try {
-      let avatarUrl = "";
-      if (avatarFile) {
-        const fileRef = ref(storage, `avatars/${Date.now()}-${avatarFile.name}`);
-        await uploadBytes(fileRef, avatarFile);
-        avatarUrl = await getDownloadURL(fileRef);
-      }
-      await addDoc(collection(db, "children"), {
-        name: name.trim(),
-        dob,
-        avatarUrl,
-      });
-      setName("");
-      setDob("");
-      setAvatarFile(null);
-      fetchChildren();
-      alert("Thêm hồ sơ thành công!");
-    } catch (err) {
-      alert("Lỗi khi thêm hồ sơ");
+    .card {
+      border-radius: 15px;
     }
-    setLoading(false);
-  };
+    .avatar {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1 class="mb-4 text-center text-primary">🌟 Hệ thống Quản lý Thiếu nhi 🌟</h1>
 
-  return (
-    <div style={{ maxWidth: 800, margin: "auto", padding: 20, fontFamily: "Arial" }}>
-      <h1 style={{ textAlign: "center" }}>Quản lý thiếu nhi</h1>
-
-      <form
-        onSubmit={onSubmit}
-        style={{
-          backgroundColor: "#f9f9f9",
-          padding: 20,
-          borderRadius: 8,
-          boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-          marginBottom: 30,
-        }}
-      >
-        <div style={{ marginBottom: 15 }}>
-          <label>Tên thiếu nhi:</label><br />
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={{ width: "100%", padding: 8, fontSize: 16 }}
-            disabled={loading}
-          />
-        </div>
-
-        <div style={{ marginBottom: 15 }}>
-          <label>Ngày sinh:</label><br />
-          <input
-            type="date"
-            value={dob}
-            onChange={(e) => setDob(e.target.value)}
-            style={{ width: "100%", padding: 8, fontSize: 16 }}
-            disabled={loading}
-          />
-        </div>
-
-        <div style={{ marginBottom: 15 }}>
-          <label>Ảnh đại diện (tùy chọn):</label><br />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              e.target.files && e.target.files.length > 0
-                ? setAvatarFile(e.target.files[0])
-                : setAvatarFile(null)
-            }
-            disabled={loading}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: 12,
-            fontSize: 18,
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-        >
-          {loading ? "Đang lưu..." : "Lưu hồ sơ"}
-        </button>
-      </form>
-
-      <h2>Danh sách thiếu nhi</h2>
-      {children.length === 0 && <p>Chưa có hồ sơ nào.</p>}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))",
-          gap: 20,
-        }}
-      >
-        {children.map((child) => (
-          <div
-            key={child.id}
-            style={{
-              backgroundColor: "white",
-              borderRadius: 8,
-              padding: 15,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              textAlign: "center",
-            }}
-          >
-            {child.avatarUrl ? (
-              <img
-                src={child.avatarUrl}
-                alt={child.name}
-                style={{ width: 100, height: 100, borderRadius: "50%", objectFit: "cover" }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: "50%",
-                  backgroundColor: "#ddd",
-                  lineHeight: "100px",
-                  color: "#666",
-                  margin: "auto",
-                }}
-              >
-                No Image
-              </div>
-            )}
-            <h3 style={{ marginTop: 10 }}>{child.name}</h3>
-            <p>Ngày sinh: {child.dob}</p>
-          </div>
-        ))}
+  <!-- Form thêm mới -->
+  <div class="card mb-4 p-3">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="ten" placeholder="Họ tên">
+      </div>
+      <div class="col-md-2">
+        <input type="date" class="form-control" id="ngaysinh">
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="lop" placeholder="Lớp">
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="phuhuynh" placeholder="Phụ huynh">
+      </div>
+      <div class="col-md-2">
+        <input type="file" class="form-control" id="anh">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-success w-100" onclick="themThieuNhi()"><i class="fas fa-plus"></i> Thêm</button>
       </div>
     </div>
-  );
-}
+  </div>
+
+  <!-- Bảng danh sách -->
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle text-center">
+      <thead class="table-primary">
+        <tr>
+          <th>Ảnh</th>
+          <th>Họ tên</th>
+          <th>Ngày sinh</th>
+          <th>Lớp</th>
+          <th>Phụ huynh</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="danhsach">
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  function themThieuNhi() {
+    const ten = document.getElementById('ten').value;
+    const ngaysinh = document.getElementById('ngaysinh').value;
+    const lop = document.getElementById('lop').value;
+    const phuhuynh = document.getElementById('phuhuynh').value;
+    const anhInput = document.getElementById('anh');
+
+    let reader = new FileReader();
+    reader.onload = function(e) {
+      const anhSrc = e.target.result;
+
+      const row = `<tr>
+        <td><img src="${anhSrc}" class="avatar"></td>
+        <td>${ten}</td>
+        <td>${ngaysinh}</td>
+        <td>${lop}</td>
+        <td>${phuhuynh}</td>
+        <td><button class='btn btn-danger btn-sm' onclick='this.parentElement.parentElement.remove()'><i class="fas fa-trash"></i></button></td>
+      </tr>`;
+
+      document.getElementById('danhsach').innerHTML += row;
+
+      // Xóa sau khi thêm
+      document.getElementById('ten').value = "";
+      document.getElementById('ngaysinh').value = "";
+      document.getElementById('lop').value = "";
+      document.getElementById('phuhuynh').value = "";
+      document.getElementById('anh').value = null;
+    };
+
+    if (anhInput.files[0]) {
+      reader.readAsDataURL(anhInput.files[0]);
+    } else {
+      alert('Vui lòng chọn ảnh');
+    }
+  }
+</script>
+
+</body>
+</html>
